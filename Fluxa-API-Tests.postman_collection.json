@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "Fluxa Invoice API",
+    "description": "API collection for testing invoice PDF upload functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Database Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/db-check",
+          "host": ["{{baseUrl}}"],
+          "path": ["db-check"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Invoice PDF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "userName",
+              "value": "John Doe",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "john.doe@example.com",
+              "type": "text"
+            },
+            {
+              "key": "invoice",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get User Invoices",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices/john.doe@example.com",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices", "john.doe@example.com"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Invoice - Different User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "userName",
+              "value": "Jane Smith",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "jane.smith@example.com",
+              "type": "text"
+            },
+            {
+              "key": "invoice",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Jane's Invoices",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices/jane.smith@example.com",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices", "jane.smith@example.com"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Without File (Error Test)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "userName",
+              "value": "Test User",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "test@example.com",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Without Email (Error Test)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "userName",
+              "value": "Test User",
+              "type": "text"
+            },
+            {
+              "key": "invoice",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
