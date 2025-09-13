@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "Fluxa Invoice API",
+    "description": "API collection for Fluxa invoice upload and management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload Invoice",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "userName",
+              "value": "John Doe",
+              "type": "text",
+              "description": "User's full name"
+            },
+            {
+              "key": "email",
+              "value": "john.doe@example.com",
+              "type": "text",
+              "description": "User's email address"
+            },
+            {
+              "key": "invoice",
+              "type": "file",
+              "description": "PDF invoice file to upload"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices", "upload"]
+        },
+        "description": "Upload a PDF invoice file with user information. Creates user if doesn't exist."
+      }
+    },
+    {
+      "name": "Get All Invoices",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/invoices",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "invoices"]
+        },
+        "description": "Retrieve all invoices from the system with their processing status and metadata."
+      }
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        },
+        "description": "Create a new user in the system."
+      }
+    },
+    {
+      "name": "Get User by Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/:email",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", ":email"],
+          "variable": [
+            {
+              "key": "email",
+              "value": "john.doe@example.com",
+              "description": "User's email address"
+            }
+          ]
+        },
+        "description": "Retrieve user information by email address."
+      }
+    },
+    {
+      "name": "Get User Stats",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/stats",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "stats"]
+        },
+        "description": "Get user statistics including total users and recent users."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL for the Fluxa API"
+    }
+  ]
+}
