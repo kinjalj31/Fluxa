@@ -7,6 +7,29 @@ const api = axios.create({
   timeout: 30000,
 })
 
+export interface InvoiceExtract {
+  id: string
+  invoice_id: string
+  invoice_number: string | null
+  sender_address: string | null
+  receiver_address: string | null
+  product: string | null
+  quantity: number | null
+  unit_price: number | null
+  subtotal: number | null
+  vat_rate: number | null
+  vat_amount: number | null
+  total_gross: number | null
+  bank_iban: string | null
+  bank_bic: string | null
+  bank_name: string | null
+  extraction_confidence: number | null
+  textract_job_id: string | null
+  processing_status: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Invoice {
   id: string
   user_id: string
@@ -14,9 +37,10 @@ export interface Invoice {
   file_path: string
   file_size: number
   mime_type: string
-  status: 'uploaded' | 'processing' | 'processed' | 'validated' | 'failed'
+  status: 'uploaded' | 'processing' | 'processed' | 'validated' | 'failed' | 'completed'
   uploaded_at: string
   created_at: string
+  extract?: InvoiceExtract
 }
 
 export interface UploadInvoiceRequest {

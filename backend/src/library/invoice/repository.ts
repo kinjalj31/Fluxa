@@ -82,4 +82,70 @@ export class InvoiceRepository {
   async findByUserId(userId: string): Promise<Invoice[]> {
     return await this.findAll({ user_id: userId })
   }
+
+  async findAllWithExtracts(): Promise<any[]> {
+    const query = `
+      SELECT 
+        i.*,
+        e.id as extract_id,
+        e.invoice_number,
+        e.sender_address,
+        e.receiver_address,
+        e.product,
+        e.quantity,
+        e.unit_price,
+        e.subtotal,
+        e.vat_rate,
+        e.vat_amount,
+        e.total_gross,
+        e.bank_iban,
+        e.bank_bic,
+        e.bank_name,
+        e.extraction_confidence,
+        e.textract_job_id,
+        e.processing_status,
+        e.created_at as extract_created_at,
+        e.updated_at as extract_updated_at
+      FROM ${this.tableName} i
+      LEFT JOIN invoice_extracts e ON i.id = e.invoice_id
+      ORDER BY i.created_at DESC
+    `
+    
+    const result = await this.db.query(query)
+    
+    return result.rows.map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      file_name: row.file_name,
+      file_path: row.file_path,
+      file_size: row.file_size,
+      mime_type: row.mime_type,
+      status: row.status,
+      uploaded_at: row.uploaded_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      extract: row.extract_id ? {
+        id: row.extract_id,
+        invoice_id: row.id,
+        invoice_number: row.invoice_number,
+        sender_address: row.sender_address,
+        receiver_address: row.receiver_address,
+        product: row.product,
+        quantity: row.quantity,
+        unit_price: row.unit_price,
+        subtotal: row.subtotal,
+        vat_rate: row.vat_rate,
+        vat_amount: row.vat_amount,
+        total_gross: row.total_gross,
+        bank_iban: row.bank_iban,
+        bank_bic: row.bank_bic,
+        bank_name: row.bank_name,
+        extraction_confidence: row.extraction_confidence,
+        textract_job_id: row.textract_job_id,
+        processing_status: row.processing_status,
+        created_at: row.extract_created_at,
+        updated_at: row.extract_updated_at
+      } : null
+    }))
+  }
 }

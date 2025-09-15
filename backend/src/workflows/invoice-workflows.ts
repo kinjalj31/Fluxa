@@ -100,15 +100,15 @@ export class InvoiceWorkflows {
    * 
    * Business Logic:
    * - Retrieve all invoices from database using repository
-   * - Include processing status and metadata
-   * - Return formatted response
+   * - Include extraction data from invoice_extracts table
+   * - Return formatted response with extraction details
    */
   static async getAllInvoices() {
-    console.log(`${COMPONENT}: Getting all invoices`)
+    console.log(`${COMPONENT}: Getting all invoices with extraction data`)
 
     try {
       const invoiceRepository = new InvoiceRepository()
-      const invoices = await invoiceRepository.findAll()
+      const invoices = await invoiceRepository.findAllWithExtracts()
 
       console.log(`${COMPONENT}: Found ${invoices.length} invoices`)
 
@@ -118,13 +118,15 @@ export class InvoiceWorkflows {
         data: {
           invoices: invoices.map(invoice => ({
             id: invoice.id,
+            user_id: invoice.user_id,
             file_name: invoice.file_name,
+            file_path: invoice.file_path,
             file_size: invoice.file_size,
             mime_type: invoice.mime_type,
             status: invoice.status,
             uploaded_at: invoice.uploaded_at,
             created_at: invoice.created_at,
-            updated_at: invoice.updated_at
+            extract: invoice.extract || null
           }))
         }
       }

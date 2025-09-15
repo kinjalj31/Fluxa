@@ -154,7 +154,7 @@ export class TextractWorkflows {
 
       console.log(`${COMPONENT}: 🚀 Sending GetDocumentAnalysis command to AWS Textract...`)
       const response = await this.client.send(command)
-      
+      console.log(`${COMPONENT}: ✅ Textract job responce!`, response)
       console.log(`${COMPONENT}: 📋 Textract Response:`, {
         JobStatus: response.JobStatus,
         BlockCount: response.Blocks?.length || 0,
@@ -163,10 +163,32 @@ export class TextractWorkflows {
 
       if (response.JobStatus === 'SUCCEEDED') {
         console.log(`${COMPONENT}: ✅ Textract job completed successfully!`)
+        
+        // Log raw blocks for analysis
+        console.log(`${COMPONENT}: 🔍 Raw Textract Blocks Analysis:`)
+        const blockTypes: Record<string, number> = {}
+        response.Blocks?.forEach(block => {
+          if (block.BlockType) {
+            blockTypes[block.BlockType] = (blockTypes[block.BlockType] || 0) + 1
+          }
+        })
+        console.log(`${COMPONENT}: 📊 Block Types:`, blockTypes)
+        
+        // Log first few LINE blocks to see actual text
+        const lineBlocks = response.Blocks?.filter(block => block.BlockType === 'LINE').slice(0, 10) || []
+        console.log(`${COMPONENT}: 📝 First 10 LINE blocks:`, lineBlocks.map(block => ({
+          Id: block.Id,
+          Text: block.Text,
+          Confidence: block.Confidence
+        })))
+        
         console.log(`${COMPONENT}: 🔄 Extracting text and structured data...`)
         
         const extractedText = this.extractText(response.Blocks || [])
+        console.log(`${COMPONENT}: 📄 Full extracted text:`, extractedText)
+        
         const invoiceData = this.extractInvoiceFields(response.Blocks || [])
+        console.log(`${COMPONENT}: 🔍 Detailed invoice field extraction:`, invoiceData)
         
         console.log(`${COMPONENT}: 📋 Extracted Data Summary:`, {
           textLength: extractedText.length,
@@ -296,48 +318,127 @@ export class TextractWorkflows {
    * Extract structured invoice data from Textract blocks
    */
   private static extractInvoiceFields(blocks: any[]) {
+    const text = this.extractText(blocks)
+    
     return {
-      invoice_number: this.findFieldValue(blocks, ['invoice', 'number', 'inv', 'rechnung']),
-      sender_address: this.findFieldValue(blocks, ['from', 'sender', 'absender', 'company']),
-      receiver_address: this.findFieldValue(blocks, ['to', 'receiver', 'empfänger', 'bill to']),
-      product: this.findFieldValue(blocks, ['product', 'item', 'description', 'artikel']),
-      quantity: this.parseNumber(this.findFieldValue(blocks, ['quantity', 'qty', 'menge', 'anzahl'])),
-      unit_price: this.parseNumber(this.findFieldValue(blocks, ['price', 'unit price', 'einzelpreis'])),
-      subtotal: this.parseNumber(this.findFieldValue(blocks, ['subtotal', 'netto', 'net'])),
+      invoice_number: this.extractInvoiceNumber(text),
+      sender_address: this.extractSenderAddress(text),
+      receiver_address: this.extractReceiverAddress(text),
+      product: this.extractProduct(text),
+      quantity: this.extractQuantity(text),
+      unit_price: this.extractUnitPrice(text),
+      subtotal: this.extractSubtotal(text),
       vat_rate: 19.00, // Default German VAT
-      vat_amount: this.parseNumber(this.findFieldValue(blocks, ['vat', 'tax', 'mwst', '19%'])),
-      total_gross: this.parseNumber(this.findFieldValue(blocks, ['total', 'gross', 'brutto', 'gesamt'])),
-      bank_iban: this.findFieldValue(blocks, ['iban']),
-      bank_bic: this.findFieldValue(blocks, ['bic', 'swift']),
-      bank_name: this.findFieldValue(blocks, ['bank', 'bankname'])
+      vat_amount: this.extractVatAmount(text),
+      total_gross: this.extractTotalGross(text),
+      bank_iban: this.extractIban(text),
+      bank_bic: this.extractBic(text),
+      bank_name: this.extractBankName(text)
     }
   }
 
   /**
-   * Find field value by keywords
+   * Extract invoice number from text
    */
-  private static findFieldValue(blocks: any[], keywords: string[]): string | null {
-    for (const block of blocks) {
-      if (block.BlockType === 'KEY_VALUE_SET' && block.EntityTypes?.includes('KEY')) {
-        const keyText = block.Text?.toLowerCase() || ''
-        
-        for (const keyword of keywords) {
-          if (keyText.includes(keyword.toLowerCase())) {
-            // Find corresponding value block
-            const valueBlock = blocks.find(b => 
-              b.BlockType === 'KEY_VALUE_SET' && 
-              b.EntityTypes?.includes('VALUE') &&
-              block.Relationships?.some((rel: any) => 
-                rel.Type === 'VALUE' && rel.Ids?.includes(b.Id)
-              )
-            )
-            
-            return valueBlock?.Text || null
-          }
-        }
-      }
+  private static extractInvoiceNumber(text: string): string | null {
+    const match = text.match(/Rechnung Nr\.\s*([\w-]+)/i)
+    return match ? match[1] : null
+  }
+
+  /**
+   * Extract sender address
+   */
+  private static extractSenderAddress(text: string): string | null {
+    const lines = text.split('\n')
+    const rechnungIndex = lines.findIndex(line => line.includes('Rechnung Nr.'))
+    if (rechnungIndex >= 0 && rechnungIndex + 4 < lines.length) {
+      return lines.slice(rechnungIndex + 1, rechnungIndex + 5).join('\n')
     }
     return null
+  }
+
+  /**
+   * Extract receiver address
+   */
+  private static extractReceiverAddress(text: string): string | null {
+    const lines = text.split('\n')
+    const anIndex = lines.findIndex(line => line.trim() === 'An:')
+    if (anIndex >= 0 && anIndex + 3 < lines.length) {
+      return lines.slice(anIndex + 1, anIndex + 4).join('\n')
+    }
+    return null
+  }
+
+  /**
+   * Extract product description
+   */
+  private static extractProduct(text: string): string | null {
+    const match = text.match(/\d+\s+([A-Za-zäöüß\s]+?)\s+\d+\s+[\d,]+/)
+    return match ? match[1].trim() : null
+  }
+
+  /**
+   * Extract quantity
+   */
+  private static extractQuantity(text: string): number | null {
+    const match = text.match(/^(\d+)\s+[A-Za-z]/m)
+    return match ? parseInt(match[1]) : null
+  }
+
+  /**
+   * Extract unit price
+   */
+  private static extractUnitPrice(text: string): number | null {
+    const match = text.match(/\d+\s+[A-Za-zäöüß\s]+\s+\d+\s+([\d,]+)/)
+    return match ? this.parseNumber(match[1]) : null
+  }
+
+  /**
+   * Extract subtotal
+   */
+  private static extractSubtotal(text: string): number | null {
+    const match = text.match(/Zwischensumme \(netto\):\s*([\d.,]+)/)
+    return match ? this.parseNumber(match[1]) : null
+  }
+
+  /**
+   * Extract VAT amount
+   */
+  private static extractVatAmount(text: string): number | null {
+    const match = text.match(/\+ 19% MwSt:\s*([\d.,]+)/)
+    return match ? this.parseNumber(match[1]) : null
+  }
+
+  /**
+   * Extract total gross amount
+   */
+  private static extractTotalGross(text: string): number | null {
+    const match = text.match(/Gesamtbetrag \(brutto\):\s*([\d.,]+)/)
+    return match ? this.parseNumber(match[1]) : null
+  }
+
+  /**
+   * Extract IBAN
+   */
+  private static extractIban(text: string): string | null {
+    const match = text.match(/IBAN:\s*([A-Z0-9\s]+?)(?:\s|$|BIC)/)
+    return match ? match[1].replace(/\s/g, '') : null
+  }
+
+  /**
+   * Extract BIC
+   */
+  private static extractBic(text: string): string | null {
+    const match = text.match(/BIC:\s*([A-Z0-9]+)/)
+    return match ? match[1] : null
+  }
+
+  /**
+   * Extract bank name
+   */
+  private static extractBankName(text: string): string | null {
+    const match = text.match(/Bank:\s*(.+)/)
+    return match ? match[1].trim() : null
   }
 
   /**
@@ -347,10 +448,17 @@ export class TextractWorkflows {
     if (!value) return null
     
     // Handle German number format (1.234,56 -> 1234.56)
-    const cleaned = value
-      .replace(/[^0-9.,]/g, '') // Remove non-numeric chars except . and ,
-      .replace(/\./g, '') // Remove thousand separators
-      .replace(',', '.') // Replace decimal comma with dot
+    let cleaned = value.replace(/[^0-9.,]/g, '') // Remove non-numeric chars except . and ,
+    
+    // Check if it has both . and , (German format with thousands separator)
+    if (cleaned.includes('.') && cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.') // 1.234,56 -> 1234.56
+    }
+    // Check if it only has , (German decimal)
+    else if (cleaned.includes(',') && !cleaned.includes('.')) {
+      cleaned = cleaned.replace(',', '.') // 56,78 -> 56.78
+    }
+    // If only . and no ,, treat as English format (1234.56)
     
     const parsed = parseFloat(cleaned)
     return isNaN(parsed) ? null : parsed
