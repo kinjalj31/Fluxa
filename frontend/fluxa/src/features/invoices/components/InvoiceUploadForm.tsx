@@ -1,180 +1,226 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
-  Card,
-  CardContent,
+  Paper,
+  Typography,
   TextField,
   Button,
-  Typography,
   Box,
-  Grid,
   Alert,
   CircularProgress,
-  Avatar
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Fade,
+  InputAdornment
 } from '@mui/material'
-import { CloudUpload, Person, Email, Description } from '@mui/icons-material'
-import { useInvoiceUpload } from '@/shared/hooks/useInvoices'
+import { CloudUpload, Person, Email, AttachFile } from '@mui/icons-material'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { uploadInvoice, clearError } from '@/store/slices/invoiceSlice'
 
-interface InvoiceUploadFormProps {
-  onUploadSuccess: () => void
-}
-
-export default function InvoiceUploadForm({ onUploadSuccess }: InvoiceUploadFormProps) {
-  const [formData, setFormData] = useState({
-    userName: '',
-    email: ''
-  })
+export const InvoiceUploadForm: React.FC = () => {
+  const [userName, setUserName] = useState('')
+  const [email, setEmail] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [successMessage, setSuccessMessage] = useState('')
+  const [success, setSuccess] = useState(false)
+  
+  const dispatch = useAppDispatch()
+  const { loading, error } = useAppSelector(state => state.invoice)
 
-  const { uploadInvoice, uploading, error, clearError } = useInvoiceUpload()
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0]
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+      setFile(selectedFile)
+    } else {
+      alert('Please select a PDF file')
+    }
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     
-    if (!file || !formData.userName || !formData.email) {
+    if (!userName || !email || !file) {
       return
     }
 
     try {
-      await uploadInvoice({
-        userName: formData.userName,
-        email: formData.email,
-        file
-      })
-
-      setSuccessMessage('Invoice uploaded successfully! Processing started...')
-      setFormData({ userName: '', email: '' })
+      await dispatch(uploadInvoice({ userName, email, file })).unwrap()
+      setSuccess(true)
+      setUserName('')
+      setEmail('')
       setFile(null)
-      onUploadSuccess()
       
-      setTimeout(() => setSuccessMessage(''), 3000)
+      // Reset form
+      const fileInput = document.getElementById('file-input') as HTMLInputElement
+      if (fileInput) fileInput.value = ''
       
+      setTimeout(() => {
+        setSuccess(false)
+        dispatch(clearError())
+      }, 3000)
     } catch (error) {
-      // Error handled by hook
+      console.error('Upload failed:', error)
     }
   }
 
-  const isFormValid = formData.userName && formData.email && file
-
   return (
-    <Card elevation={3}>
-      <CardContent sx={{ p: 4 }}>
-        <Box textAlign="center" mb={4}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              bgcolor: 'primary.light',
-              mx: 'auto',
-              mb: 2
+    <Card 
+      elevation={4}
+      sx={{ 
+        mb: 3,
+        borderRadius: 3,
+        background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)'
+      }}
+    >
+      <CardHeader
+        title={
+          <Box display="flex" alignItems="center" gap={1}>
+            <CloudUpload color="primary" />
+            <Typography variant="h5" fontWeight={600}>
+              Upload Invoice
+            </Typography>
+          </Box>
+        }
+        subheader="Upload PDF invoices for processing and analysis"
+        sx={{ pb: 1 }}
+      />
+      <Divider />
+      
+      <CardContent sx={{ p: 3 }}>
+        <Fade in={success}>
+          <Box>
+            {success && (
+              <Alert 
+                severity="success" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: 2,
+                  '& .MuiAlert-icon': { fontSize: 24 }
+                }}
+              >
+                ✓ Invoice uploaded successfully!
+              </Alert>
+            )}
+          </Box>
+        </Fade>
+        
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 3,
+              borderRadius: 2,
+              '& .MuiAlert-icon': { fontSize: 24 }
             }}
           >
-            <Description sx={{ fontSize: 40 }} />
-          </Avatar>
-          <Typography variant="h4" gutterBottom fontWeight="bold">
-            Upload Invoice
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Upload your German invoice PDF for processing
-          </Typography>
-        </Box>
-      
-        <Box component="form" onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Full Name"
-                value={formData.userName}
-                onChange={(e) => setFormData(prev => ({ ...prev, userName: e.target.value }))}
-                required
-                InputProps={{
-                  startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="email"
-                label="Email Address"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
-                InputProps={{
-                  startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Button
-                component="label"
-                variant="outlined"
-                fullWidth
-                sx={{
-                  height: 80,
-                  borderStyle: 'dashed',
-                  borderWidth: 2,
-                  '&:hover': { borderStyle: 'dashed' }
-                }}
-              >
-                <Box textAlign="center">
-                  <CloudUpload sx={{ fontSize: 32, mb: 1 }} />
-                  <Typography variant="body1">
-                    {file ? file.name : 'Click to upload PDF file'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Only PDF files • Max 10MB
-                  </Typography>
-                </Box>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  hidden
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                fullWidth
-                disabled={uploading || !isFormValid}
-                sx={{ py: 2 }}
-              >
-                {uploading ? (
-                  <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Processing Upload...
-                  </>
-                ) : (
-                  <>
-                    <CloudUpload sx={{ mr: 1 }} />
-                    Upload & Process Invoice
-                  </>
-                )}
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {successMessage && (
-          <Alert severity="success" sx={{ mt: 3 }}>
-            {successMessage}
-          </Alert>
-        )}
-
-        {error && (
-          <Alert severity="error" sx={{ mt: 3 }}>
             {error}
           </Alert>
         )}
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <TextField
+            fullWidth
+            label="User Name"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            required
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Person color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ 
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Email color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ 
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
+          />
+          
+          <Box sx={{ mb: 3 }}>
+            <input
+              id="file-input"
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="file-input">
+              <Button
+                variant={file ? "contained" : "outlined"}
+                component="span"
+                startIcon={<AttachFile />}
+                fullWidth
+                size="large"
+                sx={{ 
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1rem'
+                }}
+              >
+                {file ? `📄 ${file.name}` : 'Select PDF File'}
+              </Button>
+            </label>
+          </Box>
+          
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            size="large"
+            disabled={!userName || !email || !file || loading}
+            sx={{ 
+              mt: 2,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)'
+              }
+            }}
+          >
+            {loading ? (
+              <Box display="flex" alignItems="center" gap={1}>
+                <CircularProgress size={20} color="inherit" />
+                Processing...
+              </Box>
+            ) : (
+              'Upload Invoice'
+            )}
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   )

@@ -1,4 +1,4 @@
-import { UserRepository } from '../library/repository'
+import { UserRepository } from '../library/user/repository'
 
 const COMPONENT = 'UserWorkflows'
 

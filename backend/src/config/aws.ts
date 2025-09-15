@@ -12,4 +12,7 @@ export const S3_CONFIG = {
   bucket: process.env.S3_BUCKET_NAME!,
   region: process.env.AWS_REGION || 'us-east-1',
   cloudfrontUrl: process.env.CLOUDFRONT_URL,
+  getFileUrl: (bucketName: string, region: string, key: string): string => {
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+  }
 };

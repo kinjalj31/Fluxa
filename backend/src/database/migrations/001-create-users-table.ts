@@ -1,6 +1,6 @@
 import { Database } from '../Database'
 
-export const up = async (): Promise<void> => {
+export const up = async () => {
   const db = Database.getInstance()
   
   await db.query(`
@@ -10,16 +10,16 @@ export const up = async (): Promise<void> => {
       email VARCHAR(255) UNIQUE NOT NULL,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
-    )
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `)
   
   console.log('✅ Created users table')
 }
 
-export const down = async (): Promise<void> => {
+export const down = async () => {
   const db = Database.getInstance()
-  
   await db.query('DROP TABLE IF EXISTS users')
-  
   console.log('❌ Dropped users table')
 }

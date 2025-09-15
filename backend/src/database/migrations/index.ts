@@ -1,5 +1,6 @@
 import * as migration001 from './001-create-users-table'
 import * as migration002 from './002-create-invoices-table'
+import * as migration003 from './003-create-invoice-extracts-table'
 
 export const migrations = [
   {
@@ -11,6 +12,11 @@ export const migrations = [
     name: '002-create-invoices-table',
     up: migration002.up,
     down: migration002.down
+  },
+  {
+    name: '003-create-invoice-extracts-table',
+    up: migration003.up,
+    down: migration003.down
   }
 ]
 

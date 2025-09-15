@@ -13,6 +13,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.18.0",
+    "@reduxjs/toolkit": "^2.9.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -20,6 +21,7 @@
     "next": "14.0.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-redux": "^9.2.0",
     "typescript": "^5"
   },
   "devDependencies": {

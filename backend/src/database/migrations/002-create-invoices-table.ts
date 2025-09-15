@@ -1,6 +1,6 @@
 import { Database } from '../Database'
 
-export const up = async (): Promise<void> => {
+export const up = async () => {
   const db = Database.getInstance()
   
   await db.query(`
@@ -13,18 +13,10 @@ export const up = async (): Promise<void> => {
       mime_type VARCHAR(100) NOT NULL,
       status VARCHAR(50) DEFAULT 'uploaded',
       uploaded_at TIMESTAMP DEFAULT NOW(),
-      processed_at TIMESTAMP,
-      ocr_text TEXT,
-      ocr_confidence DECIMAL(3,2),
-      ocr_language VARCHAR(10),
-      extracted_metadata JSONB,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
-    )
-  `)
-  
-  // Create indexes for better performance
-  await db.query(`
+    );
+    
     CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
     CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
     CREATE INDEX IF NOT EXISTS idx_invoices_uploaded_at ON invoices(uploaded_at);
@@ -33,10 +25,8 @@ export const up = async (): Promise<void> => {
   console.log('✅ Created invoices table with indexes')
 }
 
-export const down = async (): Promise<void> => {
+export const down = async () => {
   const db = Database.getInstance()
-  
   await db.query('DROP TABLE IF EXISTS invoices')
-  
   console.log('❌ Dropped invoices table')
 }

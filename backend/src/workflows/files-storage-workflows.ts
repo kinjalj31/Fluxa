@@ -1,4 +1,4 @@
-import { S3Infrastructure } from '../library/infrastructure'
+import { S3Repository } from '../library/s3/repository'
 
 const COMPONENT = 'FilesStorageWorkflows'
 
@@ -58,8 +58,8 @@ export class FilesStorageWorkflows {
    * Initialize S3 storage
    * Following hiring-force storage initialization patterns
    */
-  static initializeStorage(): S3Infrastructure {
-    const storage = new S3Infrastructure()
+  static initializeStorage(): S3Repository {
+    const storage = new S3Repository()
 
     if (!storage) {
       throw new Error('Failed to initialize storage mechanism')
@@ -73,7 +73,7 @@ export class FilesStorageWorkflows {
    * Following hiring-force S3 upload patterns
    */
   static async uploadToFileStorage(
-    storage: S3Infrastructure,
+    storage: S3Repository,
     file: Express.Multer.File,
     userId: string
   ): Promise<S3UploadResult> {

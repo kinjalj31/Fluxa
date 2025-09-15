@@ -1,10 +1,21 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+
+// Explicitly load .env file
+dotenv.config({ path: path.join(__dirname, '../.env') });
+console.log('Environment loaded:', {
+  AWS_REGION: process.env.AWS_REGION,
+  TEXTRACT_SNS_TOPIC_ARN: process.env.TEXTRACT_SNS_TOPIC_ARN ? 'SET' : 'NOT SET',
+  TEXTRACT_ROLE_ARN: process.env.TEXTRACT_ROLE_ARN ? 'SET' : 'NOT SET'
+});
 import express from "express";
 import cors from "cors";
 import { DatabaseService } from "./database/database-service";
 const invoiceAPI = require('./api/invoices/invoices');
 const userAPI = require('./api/users/users');
 import { errorHandler } from "./middleware/errorHandler";
+import { SQSBroker } from "./infrastructure/messaging/sqs-broker";
+import { TextractNotificationHandler } from "./workflows/textract-notification-handler";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -68,6 +79,14 @@ const startServer = async () => {
     // Initialize database
     const dbService = DatabaseService.getInstance();
     await dbService.initialize();
+    
+    // Start SQS polling for Textract notifications
+    if (process.env.TEXTRACT_SQS_QUEUE_URL) {
+      const sqsBroker = new SQSBroker();
+      sqsBroker.setMessageHandler(TextractNotificationHandler.handleNotification);
+      sqsBroker.startPolling();
+      console.log("📨 SQS polling started for Textract notifications");
+    }
     
     // Start server
     app.listen(PORT, () => {

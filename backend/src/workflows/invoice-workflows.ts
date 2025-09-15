@@ -1,5 +1,5 @@
-import { InvoiceRepository } from '../library/repository'
-import { DocumentProcessingInfrastructure } from '../library/infrastructure'
+import { InvoiceRepository } from '../library/invoice/repository'
+
 import { FilesStorageWorkflows, S3UploadResult } from './files-storage-workflows'
 import { UserWorkflows } from './user-workflows'
 
@@ -46,10 +46,24 @@ export class InvoiceWorkflows {
       // Step 3: Save invoice record in database with S3 metadata
       console.log(`${COMPONENT}: Step 3 - Saving invoice record to database`)
       const invoice = await this.saveInvoiceToDatabase(user.id, data.file, s3Result)
-
+      //------------------------------------------------------------------------------------------------------------------------
+      //-------------------MOST IMPORTANT PART OF THE WORKFLOW-------------------
       // Step 4: Start background OCR processing (non-blocking)
-      // console.log(`${COMPONENT}: Step 4 - Starting background processing`)
-      // this.startBackgroundProcessing(invoice.id)
+      // 
+      // OCR Processing Flow:
+      // 1. Calls AWS Textract StartDocumentAnalysisCommand with S3 file location
+      // 2. Textract returns JobId immediately (processing starts in AWS background)
+      // 3. Creates initial invoice_extracts record with JobId and 'processing' status
+      // 4. SNS notification → SQS queue → handler processes results
+      // 5. Development: Polling every 10 seconds until job completes
+      // 6. On completion: Extracts invoice data (amounts, addresses, bank details)
+      // 7. Updates invoice_extracts table with all extracted fields
+      // 8. Sets invoice status to 'processed' or 'failed'
+      // 
+      // Benefits: User gets instant upload response, OCR runs asynchronously
+      // Processing time: 30 seconds to 5 minutes depending on PDF complexity
+      console.log(`${COMPONENT}: Step 4 - Starting background OCR processing`)
+      this.startBackgroundProcessing(invoice.id, s3Result)
 
       console.log(`${COMPONENT}: Invoice upload workflow completed successfully`)
 
@@ -109,11 +123,8 @@ export class InvoiceWorkflows {
             mime_type: invoice.mime_type,
             status: invoice.status,
             uploaded_at: invoice.uploaded_at,
-            processed_at: invoice.processed_at,
-            ocr_text: invoice.ocr_text,
-            ocr_confidence: invoice.ocr_confidence,
-            ocr_language: invoice.ocr_language,
-            extracted_metadata: invoice.extracted_metadata
+            created_at: invoice.created_at,
+            updated_at: invoice.updated_at
           }))
         }
       }
@@ -158,16 +169,32 @@ export class InvoiceWorkflows {
   }
 
   /**
-   * Start background processing
+   * Start background OCR processing
    * Following hiring-force async processing patterns
    */
-  private static startBackgroundProcessing(invoiceId: string): void {
-    console.log(`${COMPONENT}: Starting background processing for invoice: ${invoiceId}`)
+  private static startBackgroundProcessing(invoiceId: string, s3Result: S3UploadResult): void {
+    console.log(`${COMPONENT}: Starting background OCR processing for invoice: ${invoiceId}`)
     
-    // Non-blocking background processing
-    const processingInfrastructure = new DocumentProcessingInfrastructure()
-    processingInfrastructure.processDocument(invoiceId).catch(error => {
-      console.error(`${COMPONENT}: Background processing failed for invoice ${invoiceId}:`, error)
+    // Import TextractWorkflows dynamically to avoid circular imports
+    import('./textract-workflows').then(({ TextractWorkflows }) => {
+      TextractWorkflows.processDocument(
+        invoiceId,
+        process.env.S3_BUCKET_NAME!,
+        s3Result.key
+      ).catch(async error => {
+        console.error(`${COMPONENT}: OCR processing failed for invoice ${invoiceId}:`, error)
+        
+        // Update invoice status to failed in database
+        try {
+          const invoiceRepository = new InvoiceRepository()
+          await invoiceRepository.updateStatus(invoiceId, 'failed')
+          console.log(`${COMPONENT}: Invoice status updated to failed for: ${invoiceId}`)
+        } catch (dbError) {
+          console.error(`${COMPONENT}: Failed to update invoice status to failed:`, dbError)
+        }
+      })
+    }).catch(error => {
+      console.error(`${COMPONENT}: Failed to import TextractWorkflows:`, error)
     })
   }
 }
