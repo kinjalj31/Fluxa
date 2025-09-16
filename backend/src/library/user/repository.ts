@@ -71,6 +71,12 @@ export class UserRepository {
     return await this.update(id, data)
   }
 
+  async deleteUser(id: string): Promise<boolean> {
+    const query = `DELETE FROM ${this.tableName} WHERE id = $1`
+    const result = await this.db.query(query, [id])
+    return result.rowCount > 0
+  }
+
   async getUserStats(): Promise<{ totalUsers: number; recentUsers: number }> {
     const totalUsers = await this.count()
     

@@ -20,8 +20,8 @@ router.post(
       )
       
       return response.status(201).json({
-        message: 'User created successfully',
-        ...result
+        ...result,
+        message: 'User created successfully'
       })
     } catch (error: any) {
       console.error('Create user error:', error)
@@ -48,8 +48,8 @@ router.get(
       const result = await UserWorkflows.getUserByEmail(request.params.email)
       
       return response.status(200).json({
-        message: 'User found',
-        ...result
+        ...result,
+        message: 'User found'
       })
     } catch (error: any) {
       console.error('Get user error:', error)
@@ -76,8 +76,8 @@ router.get(
       const result = await UserWorkflows.getUserStats()
       
       return response.status(200).json({
-        message: 'User statistics retrieved',
-        ...result
+        ...result,
+        message: 'User statistics retrieved'
       })
     } catch (error: any) {
       console.error('Get user stats error:', error)

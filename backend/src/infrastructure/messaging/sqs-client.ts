@@ -83,7 +83,7 @@ export class SQSClientService {
       await this.client.send(command)
       console.log('SQS: ✅ Queue purged successfully')
     } catch (error) {
-      console.log('SQS: ⚠️ Queue purge failed (may be empty):', error.message)
+      console.log('SQS: ⚠️ Queue purge failed (may be empty):', (error as Error).message)
     }
   }
 

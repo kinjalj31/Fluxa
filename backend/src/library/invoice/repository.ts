@@ -113,7 +113,7 @@ export class InvoiceRepository {
     
     const result = await this.db.query(query)
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       user_id: row.user_id,
       file_name: row.file_name,
