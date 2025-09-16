@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "path";
 
 // Explicitly load .env file
-dotenv.config({ path: path.join(__dirname, '../backend/.env') });
+dotenv.config({ path: path.join(__dirname, '../.env') });
 console.log('Environment loaded:', {
   AWS_REGION: process.env.AWS_REGION,
   TEXTRACT_SNS_TOPIC_ARN: process.env.TEXTRACT_SNS_TOPIC_ARN ? 'SET' : 'NOT SET',

@@ -1,0 +1,8 @@
+{
+  "name": "fluxa-frontend-wrapper",
+  "scripts": {
+    "dev": "cd fluxa && npm run dev",
+    "start": "cd fluxa && npm start",
+    "build": "cd fluxa && npm run build"
+  }
+}

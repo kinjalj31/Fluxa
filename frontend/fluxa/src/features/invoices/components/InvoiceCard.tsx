@@ -1,5 +1,5 @@
-import { Invoice } from '@/shared/types/invoice'
-import StatusBadge from '@/shared/components/StatusBadge'
+import { Invoice } from '@/api'
+import { Chip } from '@mui/material'
 
 interface InvoiceCardProps {
   invoice: Invoice
@@ -33,59 +33,63 @@ export default function InvoiceCard({ invoice }: InvoiceCardProps) {
             Size: {formatFileSize(invoice.file_size)} • Uploaded: {formatDate(invoice.uploaded_at)}
           </p>
         </div>
-        <StatusBadge status={invoice.status} />
+        <Chip 
+          label={invoice.status} 
+          color={invoice.status === 'completed' ? 'success' : invoice.status === 'failed' ? 'error' : 'default'}
+          size="small"
+        />
       </div>
 
-      {invoice.ocr_confidence && (
+      {invoice.extract?.extraction_confidence && (
         <div className="mb-3">
           <div className="text-xs text-gray-600">
-            OCR Confidence: {Math.round(invoice.ocr_confidence * 100)}%
+            OCR Confidence: {Math.round(invoice.extract.extraction_confidence * 100)}%
           </div>
         </div>
       )}
 
-      {invoice.extracted_metadata && (
+      {invoice.extract && (
         <div className="bg-gray-50 p-3 rounded-md">
           <h4 className="text-sm font-medium text-gray-700 mb-2">📊 Extracted Data:</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-            {invoice.extracted_metadata.invoiceNumber && (
+            {invoice.extract.invoice_number && (
               <div>
-                <span className="font-medium">Rechnung #:</span> {invoice.extracted_metadata.invoiceNumber}
+                <span className="font-medium">Invoice #:</span> {invoice.extract.invoice_number}
               </div>
             )}
-            {invoice.extracted_metadata.invoiceDate && (
+            {invoice.extract.sender_address && (
               <div>
-                <span className="font-medium">Datum:</span> {invoice.extracted_metadata.invoiceDate}
+                <span className="font-medium">Sender:</span> {invoice.extract.sender_address}
               </div>
             )}
-            {invoice.extracted_metadata.customerName && (
+            {invoice.extract.receiver_address && (
               <div>
-                <span className="font-medium">Kunde:</span> {invoice.extracted_metadata.customerName}
+                <span className="font-medium">Receiver:</span> {invoice.extract.receiver_address}
               </div>
             )}
-            {invoice.extracted_metadata.sellerName && (
+            {invoice.extract.product && (
               <div>
-                <span className="font-medium">Verkäufer:</span> {invoice.extracted_metadata.sellerName}
+                <span className="font-medium">Product:</span> {invoice.extract.product}
               </div>
             )}
-            {invoice.extracted_metadata.netAmount && (
+            {invoice.extract.subtotal && (
               <div>
-                <span className="font-medium">Netto:</span> {invoice.extracted_metadata.netAmount} {invoice.extracted_metadata.currency}
+                <span className="font-medium">Subtotal:</span> {invoice.extract.subtotal}
               </div>
             )}
-            {invoice.extracted_metadata.grossTotal && (
+            {invoice.extract.total_gross && (
               <div>
-                <span className="font-medium">Gesamt:</span> {invoice.extracted_metadata.grossTotal} {invoice.extracted_metadata.currency}
+                <span className="font-medium">Total:</span> {invoice.extract.total_gross}
               </div>
             )}
-            {invoice.extracted_metadata.vatRate && (
+            {invoice.extract.vat_rate && (
               <div>
-                <span className="font-medium">MwSt.:</span> {invoice.extracted_metadata.vatRate}%
+                <span className="font-medium">VAT:</span> {invoice.extract.vat_rate}%
               </div>
             )}
-            {invoice.extracted_metadata.iban && (
+            {invoice.extract.bank_iban && (
               <div>
-                <span className="font-medium">IBAN:</span> {invoice.extracted_metadata.iban}
+                <span className="font-medium">IBAN:</span> {invoice.extract.bank_iban}
               </div>
             )}
           </div>
